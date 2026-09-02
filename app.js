@@ -13,16 +13,26 @@ function showApp(show) {
   document.getElementById("app-view").style.display = show ? "block" : "none";
 }
 
+function appendLog(line) {
+  const el = document.getElementById("login-log");
+  if (!el) return;
+  const ts = new Date().toLocaleTimeString();
+  el.textContent += `[${ts}] ${line}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
 async function doLogin() {
   const user = document.getElementById("login-user").value.trim();
   const pass = document.getElementById("login-pass").value;
   const statusEl = document.getElementById("login-status");
   const btn = document.getElementById("login-btn");
+  document.getElementById("login-log").textContent = "";
   if (!user || !pass) { statusEl.textContent = "Rellena email y contraseña"; statusEl.className = "status err"; return; }
   btn.disabled = true;
   statusEl.textContent = "Conectando…"; statusEl.className = "status";
   try {
     const client = new Conga(user, pass);
+    client.onLog = appendLog;
     await client.listVacuums();
     if (!client.robotId) throw new Error("No se encontró ningún robot vinculado a esta cuenta");
     localStorage.setItem("conga_user", user);

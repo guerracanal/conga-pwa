@@ -50,18 +50,32 @@ class Conga {
     this.sn = null;
     this.shadow = {};
     this.rooms = ROOMS;
+    this.onLog = () => {};
+  }
+
+  _log(msg) {
+    try { this.onLog(msg); } catch {}
   }
 
   _ensureSocket() {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) return Promise.resolve();
+    const t0 = Date.now();
+    this._log(`Abriendo conexión a ${WS_URL}…`);
     return new Promise((resolve, reject) => {
       this.loggedIn = false;
       const ws = new WebSocket(WS_URL);
       let settled = false;
-      ws.onopen = () => { if (!settled) { settled = true; this.ws = ws; resolve(); } };
-      ws.onerror = () => { if (!settled) { settled = true; reject(new CongaError("No se pudo conectar a la nube de Conga")); } };
+      ws.onopen = () => {
+        this._log(`Socket abierto (${Date.now() - t0} ms)`);
+        if (!settled) { settled = true; this.ws = ws; resolve(); }
+      };
+      ws.onerror = (ev) => {
+        this._log(`Error de socket a los ${Date.now() - t0} ms`);
+        if (!settled) { settled = true; reject(new CongaError("No se pudo conectar a la nube de Conga")); }
+      };
       ws.onmessage = (ev) => this._onMessage(ev);
-      ws.onclose = () => {
+      ws.onclose = (ev) => {
+        this._log(`Socket cerrado (code=${ev.code}, clean=${ev.wasClean}) a los ${Date.now() - t0} ms`);
         this.loggedIn = false;
         // Cualquier petición todavía pendiente en este socket ya no va a responder.
         this.pending.forEach((p) => p.reject(new CongaError("Conexión con la nube de Conga cerrada")));
@@ -72,10 +86,10 @@ class Conga {
 
   _onMessage(ev) {
     let msg;
-    try { msg = JSON.parse(ev.data); } catch { return; }
+    try { msg = JSON.parse(ev.data); } catch { this._log(`Mensaje no-JSON recibido (${ev.data?.length ?? "?"} bytes)`); return; }
     if (msg.service === SERVICE_HEARTBEAT) return;
     const pending = this.pending.get(msg.traceId);
-    if (!pending) return; // push no solicitado, se ignora
+    if (!pending) { this._log(`Mensaje recibido sin petición pendiente a la que corresponder (service=${msg.service}, traceId=${msg.traceId})`); return; }
     this.pending.delete(msg.traceId);
     const code = parseInt(msg.code, 10);
     if (!(code === 0 || code === -1)) {
@@ -101,16 +115,27 @@ class Conga {
     await this._ensureSocket();
     const traceId = String(Date.now()) + "_" + Math.random().toString(36).slice(2, 7);
     const packet = { traceId, method, service, content };
+    const t0 = Date.now();
+    this._log(`Enviando ${service} (readyState=${this.ws.readyState})…`);
     const promise = new Promise((resolve, reject) => {
-      this.pending.set(traceId, { resolve, reject });
+      this.pending.set(traceId, {
+        resolve: (v) => { this._log(`Respuesta de ${service} recibida (${Date.now() - t0} ms)`); resolve(v); },
+        reject: (e) => { this._log(`${service} falló a los ${Date.now() - t0} ms: ${e.message || e}`); reject(e); },
+      });
       setTimeout(() => {
         if (this.pending.has(traceId)) {
           this.pending.delete(traceId);
+          this._log(`Timeout de ${service} a los ${Date.now() - t0} ms (readyState=${this.ws ? this.ws.readyState : "sin socket"})`);
           reject(new CongaError(`Tiempo agotado esperando respuesta de ${service}`));
         }
       }, 20000);
     });
-    this.ws.send(JSON.stringify(packet));
+    try {
+      this.ws.send(JSON.stringify(packet));
+    } catch (e) {
+      this._log(`ws.send() lanzó excepción: ${e.message || e}`);
+      throw new CongaError(`No se pudo enviar la petición: ${e.message || e}`);
+    }
     return promise;
   }
 
