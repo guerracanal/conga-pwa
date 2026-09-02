@@ -247,6 +247,8 @@ class Conga {
       houseName: s.house_name || "",
       cleaningRoom: roomIdToName[parseInt(s.cleaning_roomId ?? 0, 10)] || null,
       dustBoxType: parseInt(s.dustBox_type ?? 0, 10),
+      cleanMode: parseInt(s.type ?? -1, 10),
+      repeatClean: !!parseInt(s.repeatClean ?? 0, 10),
     };
   }
 

@@ -111,6 +111,9 @@ async function refresh() {
     const faultEl = document.querySelector('[data-f="faultCode"]');
     if (!s.faultCode) { faultEl.textContent = "OK (0)"; faultEl.style.color = ""; }
     else { faultEl.textContent = s.faultIsWarning ? `⚠ ${s.faultCode}` : `${s.faultCode} (informativo)`; faultEl.style.color = s.faultIsWarning ? "var(--err)" : ""; }
+    const MODE_LABELS = {0: "Auto", 1: "Bordes", 2: "Fregado", 3: "Volviendo a base", 5: "Espiral", 6: "Área", 7: "Explorando", 8: "Aleatorio", 10: "Doble", 101: "Punto"};
+    setField("cleanMode", MODE_LABELS[s.cleanMode] ?? (s.cleanMode ?? "···"));
+    setField("repeatClean", s.repeatClean ? "Sí" : "No");
     document.getElementById("fan-select").value = String(s.fanSpeed ?? 1);
     document.getElementById("water-select").value = String(s.waterLevel ?? 1);
     updateMap(s.mode === "sweep" ? s.cleaningRoom : null);
