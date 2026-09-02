@@ -167,9 +167,17 @@ async function cleanRoom(name) {
   }
 }
 
+const bvEl = document.getElementById("build-version");
+if (bvEl) bvEl.textContent += ` | conga-client.js: ${typeof CONGA_CLIENT_VERSION !== "undefined" ? CONGA_CLIENT_VERSION : "??"} | app.js: 2026-09-02-f`;
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+    navigator.serviceWorker.register("sw.js").then((reg) => {
+      // Fuerza a comprobar si hay una versión nueva del propio service worker
+      // cada vez que se carga la página, en vez de fiarse del intervalo por
+      // defecto del navegador (que puede tardar horas).
+      reg.update().catch(() => {});
+    }).catch(() => {});
   });
 }
 

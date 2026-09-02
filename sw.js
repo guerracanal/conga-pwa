@@ -1,7 +1,7 @@
-// Service worker mínimo: cachea el "app shell" (HTML/CSS/JS) para que abra al
-// instante, incluso con mala cobertura. Nunca cachea llamadas a la nube de
-// Cecotec (WebSocket, no pasa por aquí de todas formas).
-const CACHE = "conga-pwa-v5";
+// Service worker: red primero, caché solo como respaldo sin conexión. Con
+// internet disponible (que aquí siempre hace falta, es la premisa de la app)
+// siempre coge la versión más reciente en vez de quedarse pegado a una vieja.
+const CACHE = "conga-pwa-v6";
 const SHELL = ["./", "./index.html", "./app.js", "./conga-client.js", "./manifest.json", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -19,6 +19,12 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((fresh) => {
+        const copy = fresh.clone();
+        caches.open(CACHE).then((c) => c.put(event.request, copy));
+        return fresh;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

@@ -70,6 +70,7 @@
 <div id="login-view">
   <h1>🤖 Conga</h1>
   <div class="sub">Control remoto — se conecta directo a la nube de Cecotec, sin pasar por casa</div>
+  <div class="note" id="build-version" style="margin-bottom:10px;">build: ···</div>
   <div class="card">
     <h3>Entrar</h3>
     <input type="text" id="login-user" placeholder="Email de tu cuenta Conga" autocomplete="username">
@@ -164,6 +165,11 @@
   <button class="ghost" onclick="refresh()" style="width:100%;">↻ Actualizar estado</button>
 </div>
 
+<script>
+  // Marca de versión visible en pantalla, para saber sin ambigüedad si el
+  // navegador está sirviendo esta versión del HTML o una copia en caché.
+  document.getElementById("build-version").textContent = "build: 2026-09-02-f (index inline)";
+</script>
 <script src="conga-client.js"></script>
 <script src="app.js"></script>
 </body>
