@@ -85,11 +85,12 @@ class Conga {
   }
 
   _onMessage(ev) {
+    this._log(`RAW recibido (${ev.data?.length ?? "?"} bytes): ${String(ev.data).slice(0, 400)}`);
     let msg;
-    try { msg = JSON.parse(ev.data); } catch { this._log(`Mensaje no-JSON recibido (${ev.data?.length ?? "?"} bytes)`); return; }
+    try { msg = JSON.parse(ev.data); } catch { this._log(`No se pudo parsear como JSON`); return; }
     if (msg.service === SERVICE_HEARTBEAT) return;
     const pending = this.pending.get(msg.traceId);
-    if (!pending) { this._log(`Mensaje recibido sin petición pendiente a la que corresponder (service=${msg.service}, traceId=${msg.traceId})`); return; }
+    if (!pending) { this._log(`Sin petición pendiente para traceId=${JSON.stringify(msg.traceId)} (pendientes activos: ${JSON.stringify([...this.pending.keys()])})`); return; }
     this.pending.delete(msg.traceId);
     const code = parseInt(msg.code, 10);
     if (!(code === 0 || code === -1)) {
