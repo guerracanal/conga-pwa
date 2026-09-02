@@ -36,6 +36,13 @@ const PREFERENCE_WATER = 2;
 const ROOMS = { "Cocina": 10, "Salón": 11, "Dormitorio": 12, "Pasillo": 13, "Estudio": 14 };
 
 const KNOWN_FAULTS = { 2102: "backcharge", 2103: "charge", 2104: "backcharge", 2105: "fullcharge" };
+const FAULT_DESCRIPTIONS = {
+  2102: "Volviendo a la base (orden general del sistema)",
+  2103: "Cargando",
+  2104: "El usuario ha pedido volver a la base",
+  2105: "Carga completa",
+  2110: "Código sin documentar — visto justo al arrancar un plan recién creado; se ha resuelto solo en pocos segundos las veces que ha salido. Posible aviso transitorio, sin confirmar del todo.",
+};
 
 class CongaError extends Error {}
 class CongaAuthError extends CongaError {}
@@ -238,6 +245,7 @@ class Conga {
       battery,
       mode: this._statusName(workMode, chargeStatus, fault),
       faultCode: fault,
+      faultDescription: fault ? (FAULT_DESCRIPTIONS[fault] || "Código sin identificar todavía") : null,
       faultIsWarning: !!fault && !KNOWN_FAULTS[fault],
       fanSpeed: parseInt(s.cleanPerference ?? 0, 10),
       waterLevel: parseInt(s.waterlevel ?? 0, 10),
