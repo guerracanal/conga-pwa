@@ -89,9 +89,25 @@ class Conga {
     let msg;
     try { msg = JSON.parse(ev.data); } catch { this._log(`No se pudo parsear como JSON`); return; }
     if (msg.service === SERVICE_HEARTBEAT) return;
-    const pending = this.pending.get(msg.traceId);
-    if (!pending) { this._log(`Sin petición pendiente para traceId=${JSON.stringify(msg.traceId)} (pendientes activos: ${JSON.stringify([...this.pending.keys()])})`); return; }
-    this.pending.delete(msg.traceId);
+    let pending = this.pending.get(msg.traceId);
+    let matchedTraceId = msg.traceId;
+    if (!pending) {
+      const code = parseInt(msg.code, 10);
+      const keys = [...this.pending.keys()];
+      // Salvavidas: si el servidor manda un error sin poder identificar a qué
+      // petición corresponde (p.ej. traceId mal formado) y solo hay una
+      // petición esperando, se la damos por respondida en vez de dejarla morir
+      // de timeout sin motivo aparente.
+      if (code !== 0 && code !== -1 && keys.length === 1) {
+        matchedTraceId = keys[0];
+        pending = this.pending.get(matchedTraceId);
+        this._log(`Error sin traceId reconocible, asignado a la única petición pendiente (${matchedTraceId})`);
+      } else {
+        this._log(`Sin petición pendiente para traceId=${JSON.stringify(msg.traceId)} (pendientes activos: ${JSON.stringify(keys)})`);
+        return;
+      }
+    }
+    this.pending.delete(matchedTraceId);
     const code = parseInt(msg.code, 10);
     if (!(code === 0 || code === -1)) {
       const message = msg.msg || ev.data;
@@ -114,7 +130,10 @@ class Conga {
 
   async _request(method, service, content) {
     await this._ensureSocket();
-    const traceId = String(Date.now()) + "_" + Math.random().toString(36).slice(2, 7);
+    // El servidor solo acepta traceId puramente numérico (igual que el cliente
+    // Python original, str(int(time.time()*1000))) — con letras/guiones responde
+    // con un error de "formato de datos no reconocido" y traceId:"0".
+    const traceId = String(Date.now());
     const packet = { traceId, method, service, content };
     const t0 = Date.now();
     this._log(`Enviando ${service} (readyState=${this.ws.readyState})…`);
