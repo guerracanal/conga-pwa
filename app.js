@@ -13,6 +13,29 @@ function showApp(show) {
   document.getElementById("app-view").style.display = show ? "block" : "none";
 }
 
+async function copyLog() {
+  const el = document.getElementById("login-log");
+  const btn = document.getElementById("copy-log-btn");
+  const text = el.textContent || "(vacío)";
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = "✓ Copiado";
+  } catch (e) {
+    // Fallback para navegadores/contextos sin permiso de portapapeles.
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand("copy"); btn.textContent = "✓ Copiado"; }
+    catch { btn.textContent = "No se pudo copiar"; }
+    document.body.removeChild(ta);
+  }
+  setTimeout(() => { btn.textContent = "📋 Copiar registro"; }, 2000);
+}
+
 function appendLog(line) {
   const el = document.getElementById("login-log");
   if (!el) return;

@@ -77,6 +77,9 @@
     <div class="note">Se guarda solo en este dispositivo (localStorage), nunca sale de aquí salvo hacia la propia nube de Cecotec.</div>
     <button id="login-btn" onclick="doLogin()">Entrar</button>
     <div class="status" id="login-status"></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="ghost" id="copy-log-btn" onclick="copyLog()" style="padding:6px 10px; font-size:0.78rem;">📋 Copiar registro</button>
+    </div>
     <div class="note" id="login-log" style="white-space:pre-wrap; font-family:monospace; font-size:0.72rem; max-height:160px; overflow-y:auto;"></div>
   </div>
 </div>
