@@ -95,6 +95,7 @@ async function tryAutoLogin() {
 
 function startPolling() {
   refresh();
+  refreshConsumables();
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(refresh, 20000);
 }
@@ -109,12 +110,16 @@ async function refresh() {
     setField("cleaningRoom", s.mode === "sweep" ? (s.cleaningRoom || "desconocida") : "—");
     setField("dustBoxType", DUSTBOX_LABELS[s.dustBoxType] || "desconocido");
     const faultEl = document.querySelector('[data-f="faultCode"]');
-    if (!s.faultCode) { faultEl.textContent = "OK (0)"; faultEl.style.color = ""; }
-    else { faultEl.textContent = s.faultIsWarning ? `⚠ ${s.faultCode}` : `${s.faultCode} (informativo)`; faultEl.style.color = s.faultIsWarning ? "var(--err)" : ""; }
-    const faultDescEl = document.getElementById("fault-desc");
-    if (faultDescEl) {
-      if (s.faultCode && s.faultDescription) { faultDescEl.textContent = s.faultDescription; faultDescEl.style.display = ""; }
-      else { faultDescEl.style.display = "none"; }
+    const faultLabelEl = document.getElementById("fault-label");
+    if (!s.faultCode) {
+      if (faultLabelEl) faultLabelEl.textContent = "Aviso del sistema";
+      faultEl.textContent = "Sin avisos";
+      faultEl.style.color = "";
+    } else {
+      const desc = s.faultDescription || "Código sin identificar todavía";
+      if (faultLabelEl) faultLabelEl.textContent = s.faultIsWarning ? "⚠ Fallo" : "Aviso del sistema";
+      faultEl.textContent = `${desc} (código ${s.faultCode})`;
+      faultEl.style.color = s.faultIsWarning ? "var(--err)" : "";
     }
     const MODE_LABELS = {0: "Auto", 1: "Bordes", 2: "Fregado", 3: "Volviendo a base", 5: "Espiral", 6: "Área", 7: "Explorando", 8: "Aleatorio", 10: "Doble", 101: "Punto"};
     setField("cleanMode", MODE_LABELS[s.cleanMode] ?? (s.cleanMode ?? "···"));
@@ -167,7 +172,10 @@ async function cleanRoom(name) {
   const statusEl = document.getElementById("action-status");
   statusEl.textContent = `Limpiando ${name}…`; statusEl.className = "status";
   try {
-    await conga.startRoom(name);
+    await conga.startRoom(name, {
+      fanSpeed: parseInt(document.getElementById("fan-select").value, 10),
+      waterLevel: parseInt(document.getElementById("water-select").value, 10),
+    });
     statusEl.textContent = `Empezando a limpiar ${name}`;
     setTimeout(refresh, 1500);
   } catch (e) {
@@ -175,8 +183,26 @@ async function cleanRoom(name) {
   }
 }
 
+async function refreshConsumables() {
+  const wrap = document.getElementById("consumables");
+  if (!wrap || !conga) return;
+  try {
+    const c = await conga.getConsumables();
+    const labels = { filter: "Filtro", side_brush: "Cepillo lateral", main_brush: "Cepillo central", dishcloth: "Mopa" };
+    wrap.innerHTML = "";
+    for (const [key, label] of Object.entries(labels)) {
+      const info = c[key];
+      if (!info) continue;
+      const row = document.createElement("div");
+      row.className = "kv-row";
+      row.innerHTML = `<span class="k">${label}</span><span class="v">${info.hoursUsed}h usadas — ${info.percentRemaining}% restante (${info.hoursRemaining}h)</span>`;
+      wrap.appendChild(row);
+    }
+  } catch (e) { /* silencioso, no es crítico */ }
+}
+
 const bvEl = document.getElementById("build-version");
-if (bvEl) bvEl.textContent += ` | conga-client.js: ${typeof CONGA_CLIENT_VERSION !== "undefined" ? CONGA_CLIENT_VERSION : "??"} | app.js: 2026-09-02-f`;
+if (bvEl) bvEl.textContent += ` | conga-client.js: ${typeof CONGA_CLIENT_VERSION !== "undefined" ? CONGA_CLIENT_VERSION : "??"} | app.js: 2026-09-03-a`;
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
