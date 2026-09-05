@@ -1,7 +1,7 @@
 // Service worker: red primero, caché solo como respaldo sin conexión. Con
 // internet disponible (que aquí siempre hace falta, es la premisa de la app)
 // siempre coge la versión más reciente en vez de quedarse pegado a una vieja.
-const CACHE = "conga-pwa-v6";
+const CACHE = "conga-pwa-v7";
 const SHELL = ["./", "./index.html", "./app.js", "./conga-client.js", "./manifest.json", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {

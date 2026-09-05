@@ -2,7 +2,7 @@
 // nube por WebSocket, sin backend. Puerto de conga_cecotec.py (Python), usado
 // en panelcasa. Mismo protocolo que la app oficial de Conga.
 
-const CONGA_CLIENT_VERSION = "2026-09-03-a";
+const CONGA_CLIENT_VERSION = "2026-09-05-a";
 const WS_URL = "wss://tcp-cecotec.3irobotix.net:9090";
 
 const FACTORY_ID = 1003;

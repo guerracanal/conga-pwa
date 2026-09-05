@@ -172,6 +172,18 @@ async function cleanRoom(name) {
   const statusEl = document.getElementById("action-status");
   statusEl.textContent = `Limpiando ${name}…`; statusEl.className = "status";
   try {
+    // 05/09/2026: si ya está limpiando, no mandar una segunda orden
+    // setRoomCleanPlan encima de la primera — confunde al robot y acaba
+    // saliéndose a otra habitación en vez de quedarse solo en la pedida
+    // (visto en vivo; mismo arreglo aplicado en panelcasa/app.py). Se
+    // refresca el estado real aquí, no nos fiamos del último refresh()
+    // periódico (puede llevar hasta 20s de retraso).
+    const s = await conga.updateStatus();
+    if (s.mode === "sweep") {
+      statusEl.textContent = `Ya está limpiando${s.cleaningRoom ? " " + s.cleaningRoom : ""} — para primero si quieres cambiar de habitación.`;
+      statusEl.className = "status err";
+      return;
+    }
     await conga.startRoom(name, {
       fanSpeed: parseInt(document.getElementById("fan-select").value, 10),
       waterLevel: parseInt(document.getElementById("water-select").value, 10),
@@ -202,7 +214,7 @@ async function refreshConsumables() {
 }
 
 const bvEl = document.getElementById("build-version");
-if (bvEl) bvEl.textContent += ` | conga-client.js: ${typeof CONGA_CLIENT_VERSION !== "undefined" ? CONGA_CLIENT_VERSION : "??"} | app.js: 2026-09-03-a`;
+if (bvEl) bvEl.textContent += ` | conga-client.js: ${typeof CONGA_CLIENT_VERSION !== "undefined" ? CONGA_CLIENT_VERSION : "??"} | app.js: 2026-09-05-a`;
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
